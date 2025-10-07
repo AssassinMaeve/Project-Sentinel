@@ -9,8 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.12.2",
+    "groq-sdk": "^0.33.0",
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
+    "openai": "^6.2.0",
+    "pdf-parse-fork": "^1.2.0",
+    "pdf.js-extract": "^0.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -18,11 +24,15 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "canvas": "^3.2.0"
   }
 }

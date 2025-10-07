@@ -9,7 +9,6 @@ import CaseScreen from '@/app/screens/CaseScreen';
 import AuthScreen from '@/app/screens/AuthScreen'; // 1. Import the new AuthScreen
 import { fetchDashboardData } from '@/app/api/sentinelApi';
 import { User, Deadline, Case, Screen } from '@/app/types';
-import ProfileScreen from '@/app/screens/ProfileScreen';
 
 interface DashboardData {
   deadlines: Deadline[];
