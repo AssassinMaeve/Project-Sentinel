@@ -6,7 +6,6 @@ import Chatbot from '@/app/components/Chatbot';
 import DashboardScreen from '@/app/screens/DashboardScreen';
 import ReportScreen from '@/app/screens/ReportScreen';
 import CaseScreen from '@/app/screens/CaseScreen';
-import { fetchDashboardData } from '@/app/api/sentinelApi';
 import { User, Deadline, Case, Screen } from '@/app/types';
 
 interface DashboardData {
@@ -29,25 +28,33 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load dashboard data function
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/dashboard');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setUser(data.user);
+        setDashboardData({ deadlines: data.deadlines, cases: data.cases });
+      } else {
+        setError("Could not load application data.");
+      }
+    } catch (err) {
+      setError("Could not load application data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       setLoading(false);
       return;
     }
 
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchDashboardData();
-        setUser(data.user);
-        setDashboardData({ deadlines: data.deadlines, cases: data.cases });
-      } catch (err) {
-        setError("Could not load application data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    loadDashboardData();
   }, [isAuthenticated]);
 
   const handleLoginSuccess = () => {
@@ -219,7 +226,7 @@ export default function HomePage() {
   }
 
   const renderContent = () => {
-    if (loading) return <div className="w-full text-center p-10">Loading Sentinel Wellness...</div>;
+    if (loading) return <div className="w-full text-center p-10 text-white">Loading Sentinel Wellness...</div>;
     if (error) return <div className="w-full text-center p-10 text-red-400">{error}</div>;
 
     switch (activeScreen) {
@@ -230,13 +237,17 @@ export default function HomePage() {
                   cases={dashboardData.cases} 
                   onNavigate={handleNavigate}
                   onSelectCase={handleSelectCase}
+                  onRefresh={loadDashboardData}
                 />;
       case 'reports':
         return <ReportScreen userName={user?.name} />;
       case 'cases':
-        return <CaseScreen caseId={selectedCaseId} />;
+        return <CaseScreen 
+                  caseId={selectedCaseId}
+                  onRefresh={loadDashboardData}  // ← FIXED: Added this line
+                />;
       default:
-        return <div>Invalid Screen</div>;
+        return <div className="text-white">Invalid Screen</div>;
     }
   };
 
@@ -250,6 +261,8 @@ export default function HomePage() {
     </div>
   );
 }
+
+// ... rest of your LoginForm, RegisterForm, ForgotPasswordForm components stay the same
 
 // ==================== LOGIN FORM ====================
 interface LoginFormProps {

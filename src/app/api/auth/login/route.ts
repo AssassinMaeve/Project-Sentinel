@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/app/lib/mongodb';
 import bcrypt from 'bcrypt';
 import * as jose from 'jose';
-// 'cookies' is no longer needed to be imported for setting cookies in the response
-// import { cookies } from 'next/headers'; 
 
 const DB_NAME = "sentineldb";
 const COLLECTION_NAME = "users";
@@ -34,20 +32,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
         }
 
-        const token = await new jose.SignJWT({ userId: user._id.toString(), email: user.email })
+        // Create JWT token with 7 days expiry (longer session)
+        const token = await new jose.SignJWT({ 
+            userId: user._id.toString(), 
+            email: user.email 
+        })
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
-            .setExpirationTime('1h')
+            .setExpirationTime('7d') // Changed from 1h to 7d
             .sign(JWT_SECRET);
         
         // Create the successful response
         const response = NextResponse.json({ message: "Login successful." }, { status: 200 });
 
-        // Set the JWT in a secure, httpOnly cookie on the response
+        // Set the JWT in a secure, httpOnly cookie with longer maxAge
         response.cookies.set('session', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV !== 'development',
-            maxAge: 60 * 60, // 1 hour in seconds
+            sameSite: 'lax', // Added for better compatibility
+            maxAge: 60 * 60 * 24 * 7, // 7 days in seconds (changed from 1 hour)
             path: '/',
         });
 

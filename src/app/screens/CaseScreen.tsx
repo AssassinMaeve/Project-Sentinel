@@ -1,126 +1,236 @@
-// src/screens/CaseScreen.tsx
-
-// This component uses hooks (useState, useEffect) for data fetching and state management,
-// so it must be a Client Component.
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { FileText } from 'lucide-react';
-import { fetchCaseDetails } from '@/app/api/sentinelApi' // Using path alias for consistency
-import { CaseDetails } from '@/app/types'; // Import the main type definition
 
-// 1. Define the props interface for this component.
 interface CaseScreenProps {
   caseId: string | null;
+  onRefresh?: () => void; // Add refresh callback
 }
 
-// Define a specific type for the possible tab values for type safety.
-type Tab = 'overview' | 'files' | 'notes' | 'calendar';
+interface CaseData {
+  _id: string;
+  caseNumber: string;
+  caseName: string;
+  description: string;
+  status: string;
+  type: string;
+  deadline: string;
+  createdAt: string;
+}
 
-// 2. Apply the props interface.
-const CaseScreen = ({ caseId }: CaseScreenProps) => {
-  // 3. Provide explicit types for the state hooks.
-  const [caseData, setCaseData] = useState<CaseDetails | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+export default function CaseScreen({ caseId, onRefresh }: CaseScreenProps) {
+  const [cases, setCases] = useState<CaseData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCase, setSelectedCase] = useState<CaseData | null>(null);
 
   useEffect(() => {
-    const loadCaseData = async () => {
-      if (!caseId) {
-        setLoading(false);
-        setError("No case selected.");
-        return;
+    fetchCases();
+  }, []);
+
+  useEffect(() => {
+    if (caseId) {
+      const foundCase = cases.find((c: CaseData) => c._id === caseId);
+      if (foundCase) {
+        setSelectedCase(foundCase);
       }
+    }
+  }, [caseId, cases]);
+
+  const fetchCases = async () => {
+    try {
+      const response = await fetch('/api/cases');
+      const data = await response.json();
       
-      setLoading(true);
-      setError(null); // Reset error state on new fetch
-      try {
-        const data = await fetchCaseDetails(caseId);
-        setCaseData(data);
-      } catch (err) {
-        // Ensure the error is a string
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError("An unknown error occurred.");
-        }
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        setCases(data.cases);
       }
-    };
-    loadCaseData();
-  }, [caseId]); // This effect re-runs whenever the caseId prop changes.
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Conditional rendering based on the state of the component.
-  if (loading) return <div className="p-8 text-center w-full">Loading case details...</div>;
-  if (error) return <div className="p-8 text-center w-full text-red-400">Error: {error}</div>;
-  if (!caseData) return <div className="p-8 text-center w-full">Please select a case from the dashboard.</div>;
+  const handleDeleteCase = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this case?')) return;
 
-  // TypeScript knows 'caseData' is not null past this point.
-  
-  const tabs: Tab[] = ['overview', 'files', 'notes', 'calendar'];
+    try {
+      const response = await fetch(`/api/cases?caseId=${id}`, {
+        method: 'DELETE',
+      });
 
-  return (
-    <div className="flex-1 overflow-y-auto p-8">
-      <div className="mb-6 pb-6 border-b border-slate-700/50">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-3xl font-light text-slate-200 mb-2">Case #{caseData.number}</h2>
-            <p className="text-slate-400">{caseData.title}</p>
+      if (response.ok) {
+        // Refresh local cases list
+        await fetchCases();
+        
+        // Clear selected case
+        if (selectedCase?._id === id) {
+          setSelectedCase(null);
+        }
+        
+        // Refresh dashboard if callback provided
+        if (onRefresh) {
+          onRefresh();
+        }
+        
+        alert('Case deleted successfully!');
+      } else {
+        alert('Failed to delete case. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting case:', error);
+      alert('An error occurred while deleting the case.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full flex items-center justify-center p-8">
+        <div className="text-white text-lg">Loading cases...</div>
+      </div>
+    );
+  }
+
+  // If a specific case is selected, show detailed view
+  if (selectedCase) {
+    return (
+      <div className="w-full p-8 overflow-y-auto">
+        <button
+          onClick={() => setSelectedCase(null)}
+          className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-6 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to All Cases
+        </button>
+
+        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">{selectedCase.caseNumber}</h1>
+              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-sm font-semibold rounded-full">
+                {selectedCase.status}
+              </span>
+            </div>
+            <button
+              onClick={() => handleDeleteCase(selectedCase._id)}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-semibold"
+            >
+              Delete Case
+            </button>
           </div>
-          <span className="px-4 py-2 bg-cyan-900/50 text-cyan-400 rounded-full text-sm font-medium">{caseData.status}</span>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-slate-400 text-sm font-semibold mb-2">Case Name</h3>
+              <p className="text-white text-lg">{selectedCase.caseName}</p>
+            </div>
+
+            <div>
+              <h3 className="text-slate-400 text-sm font-semibold mb-2">Type</h3>
+              <p className="text-white">{selectedCase.type}</p>
+            </div>
+
+            <div>
+              <h3 className="text-slate-400 text-sm font-semibold mb-2">Description</h3>
+              <p className="text-white">{selectedCase.description || 'No description provided'}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-slate-400 text-sm font-semibold mb-2">Deadline</h3>
+                <p className="text-white">{new Date(selectedCase.deadline).toLocaleString()}</p>
+              </div>
+              <div>
+                <h3 className="text-slate-400 text-sm font-semibold mb-2">Created</h3>
+                <p className="text-white">{new Date(selectedCase.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="flex gap-1 mb-6 border-b border-slate-700/50">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 font-medium transition-colors capitalize ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-slate-300'}`}
-          >
-            {tab === 'files' ? 'Files & Evidence' : tab === 'notes' ? 'Notes & Logs' : tab}
-          </button>
-        ))}
+  // Show all cases grid view
+  return (
+    <div className="w-full p-8 overflow-y-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-white">All Cases</h1>
+        <div className="text-slate-400">
+          {cases.length} {cases.length === 1 ? 'case' : 'cases'}
+        </div>
       </div>
+      
+      {cases.length === 0 ? (
+        <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
+          <svg className="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 className="text-xl font-semibold text-white mb-2">No cases yet</h3>
+          <p className="text-slate-400">Create your first case from the dashboard</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cases.map((caseItem) => (
+            <div 
+              key={caseItem._id} 
+              className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-cyan-500 transition-all group"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h3 
+                  className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors cursor-pointer"
+                  onClick={() => setSelectedCase(caseItem)}
+                >
+                  {caseItem.caseNumber}
+                </h3>
+                <span className="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-xs font-semibold rounded-full">
+                  {caseItem.status}
+                </span>
+              </div>
+              
+              <h4 className="text-slate-300 font-medium mb-2">{caseItem.caseName}</h4>
+              
+              <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+                {caseItem.description || 'No description'}
+              </p>
+              
+              <div className="space-y-2 text-sm mb-4">
+                <div className="flex items-center gap-2 text-slate-400">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                  </svg>
+                  <span>{caseItem.type}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-slate-400">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                  </svg>
+                  <span>{new Date(caseItem.deadline).toLocaleDateString()}</span>
+                </div>
+              </div>
 
-      <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/50">
-        {activeTab === 'overview' && <p>{caseData.overview.description}</p>}
-        {activeTab === 'files' && (
-          <div className="grid grid-cols-3 gap-4">
-            {caseData.files.map(file => (
-              <div key={file.id} className="bg-slate-900/50 rounded p-4 text-center">
-                <FileText className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                <p className="text-slate-300 text-sm truncate">{file.name}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedCase(caseItem)}
+                  className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  View Details
+                </button>
+                <button
+                  onClick={() => handleDeleteCase(caseItem._id)}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-         {activeTab === 'notes' && (
-          <div className="space-y-3">
-            {caseData.notes.map(note => (
-              <div key={note.id} className="bg-slate-900/50 rounded p-4">
-                <p className="text-slate-400 text-xs mb-2">{note.timestamp}</p>
-                <p className="text-slate-200">{note.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {activeTab === 'calendar' && (
-          <div className="space-y-3">
-            {caseData.calendar.map(event => (
-              <div key={event.id} className={`bg-slate-900/50 rounded p-4 border-l-4 ${event.isPriority ? 'border-cyan-400' : 'border-slate-600'}`}>
-                <p className="text-slate-200 font-medium mb-1">{event.title}</p>
-                <p className="text-slate-400 text-sm">{event.dateTime}</p>
-                <p className="text-slate-500 text-sm mt-2">{event.location}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default CaseScreen;
+}
