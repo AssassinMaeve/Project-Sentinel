@@ -1,23 +1,46 @@
-// src/screens/ReportScreen.jsx
+// src/screens/ReportScreen.tsx
+
+// This component uses state and interactivity, so it must be a Client Component.
+"use client";
+
 import React, { useState } from 'react';
 import { Mic, Upload, FileText, Copy, Save, Send } from 'lucide-react';
-import { generateReportApi } from '../api/sentinelApi';
+// 1. Use the correct path alias for the API import.
+import { generateReportApi } from '@/app/api/sentinelApi';
 
-const ReportScreen = ({ userName }) => {
+// 2. Define an interface for the component's props.
+interface ReportScreenProps {
+  userName: string | undefined;
+}
+
+// 3. Apply the props interface.
+const ReportScreen = ({ userName }: ReportScreenProps) => {
   const [notes, setNotes] = useState('');
   const [generatedText, setGeneratedText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateReport = async () => {
-    if (!notes) return;
+    if (!notes) {
+        setError("Please enter some notes before generating a report.");
+        return;
+    }
+    // Ensure userName exists before making the API call.
+    if (!userName) {
+        setError("User data is not available. Cannot generate report.");
+        return;
+    }
+    
     setIsGenerating(true);
+    setError(null);
     try {
       const result = await generateReportApi(notes, userName);
       setGeneratedText(result);
       setIsGenerated(true);
-    } catch (error) {
-      console.error("Failed to generate report", error);
+    } catch (err) {
+      console.error("Failed to generate report", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred during report generation.");
     } finally {
       setIsGenerating(false);
     }
@@ -43,6 +66,9 @@ const ReportScreen = ({ userName }) => {
               <Upload className="w-5 h-5" /> Attach Files
             </button>
           </div>
+          
+          {error && <p className="text-red-400 text-sm mt-2 text-center">{error}</p>}
+          
           <button
             onClick={handleGenerateReport}
             disabled={isGenerating}
