@@ -12,6 +12,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+.bg-square {
+  background-color: #1d293d !important;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
