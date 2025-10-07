@@ -1,134 +1,168 @@
 "use client";
 
 import React, { useState } from 'react';
-import { LogIn, UserPlus } from 'lucide-react';
-import { AnimatedBackground } from '@/app/components/AnimatedBackground'; // Import the new component
-
-const FAKE_AUTH_DELAY = 1000;
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { LogIn, UserPlus, Mail } from 'lucide-react';
+import { AnimatedBackground } from '@/app/components/AnimatedBackground';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
 }
 
 const AuthScreen = ({ onLoginSuccess }: AuthScreenProps) => {
-  const [isLoginView, setIsLoginView] = useState(true);
+  // Use a string to manage the view state for more flexibility
+  const [view, setView] = useState<'login' | 'register' | 'forgotPassword'>('login');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [badgeNumber, setBadgeNumber] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Login failed.');
+    }
+    onLoginSuccess();
+  };
+
+  const handleRegister = async () => {
+    const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, badgeNumber, email, password }),
+    });
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Registration failed.');
+    }
+    setMessage("Registration successful! Please log in.");
+    setView('login');
+  };
+
+  const handleForgotPassword = async () => {
+    const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reset email.');
+    }
+    setMessage(data.message);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    await sleep(FAKE_AUTH_DELAY);
+    setMessage(null);
 
     try {
-      if (isLoginView) {
-        if (email === 'test@test.com' && password === 'test') {
-          onLoginSuccess();
+        if (view === 'login') {
+            await handleLogin();
+        } else if (view === 'register') {
+            await handleRegister();
         } else {
-          throw new Error('Invalid email or password.');
+            await handleForgotPassword();
         }
-      } else {
-        if (!fullName || !badgeNumber) {
-            throw new Error('All registration fields are required.');
-        }
-        console.log('Registration successful:', { fullName, badgeNumber, email });
-        setIsLoginView(true); 
-      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
+  };
+  
+  const renderFormContent = () => {
+    if (view === 'forgotPassword') {
+        return (
+            <>
+                <h2 className="text-xl font-semibold text-gray-600">Forgot Password</h2>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+                    <div>
+                        <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg"/>
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+                        {isLoading ? 'Sending...' : <><Mail className="w-5 h-5" /> Send Reset Link</>}
+                    </button>
+                </form>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <h2 className="text-xl font-semibold text-gray-600">{view === 'login' ? 'Officer Login' : 'Create Account'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+                {view === 'register' && (
+                    <>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2">Full Name</label>
+                            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg"/>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2">Badge Number</label>
+                            <input type="text" value={badgeNumber} onChange={(e) => setBadgeNumber(e.target.value)} required className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg"/>
+                        </div>
+                    </>
+                )}
+                <div>
+                    <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg"/>
+                </div>
+                <div>
+                    <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg"/>
+                </div>
+                <button type="submit" disabled={isLoading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+                    {isLoading ? 'Processing...' : (view === 'login' ? <><LogIn className="w-5 h-5"/> Sign In</> : <><UserPlus className="w-5 h-5"/> Create Account</>)}
+                </button>
+            </form>
+        </>
+    );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden ">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
         <AnimatedBackground />
-    
         <main className="w-full max-w-md z-10">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl border-2 shadow-2xl p-8 w-full">
                 <div className="text-center mb-8">
-                    {/* Your custom color is preserved here */}
                     <div className="w-16 h-16 bg-[#1d293d] rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
                         <span className="text-white font-bold text-xl">S</span>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800">Project Sentinel</h1>
-                    <h2 className="text-xl font-semibold text-gray-600">
-                        {isLoginView ? 'Officer Login' : 'Create Account'}
-                    </h2>
                 </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isLoginView && (
-                      <>
-                        <div>
-                            <label className="block text-gray-700 text-sm font-semibold mb-2">Full Name</label>
-                            <input
-                                type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                                className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                placeholder="Enter your full name" required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-gray-700 text-sm font-semibold mb-2">Badge Number</label>
-                            <input
-                                type="text" value={badgeNumber} onChange={(e) => setBadgeNumber(e.target.value)}
-                                className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                placeholder="Enter your badge number" required
-                            />
-                        </div>
-                      </>
-                    )}
-                    <div>
-                        <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
-                        <input
-                            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                            placeholder="Enter your email" required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
-                        <input
-                            type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 border text-[#1d293d] border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                            placeholder="Enter your password" required
-                        />
-                    </div>
-                    
-                    {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition shadow-lg flex items-center justify-center gap-2 disabled:bg-gray-400"
-                    >
-                        {isLoading ? (
-                            'Processing...'
-                          ) : isLoginView ? (
-                            <><LogIn className="w-5 h-5" /> Sign In</>
-                          ) : (
-                            <><UserPlus className="w-5 h-5" /> Create Account</>
-                        )}
-                    </button>
-                    
-                    <div className="text-center">
-                        <a href="#" className="text-purple-600 hover:text-purple-700 text-sm">
-                            Forgot Password?
-                        </a>
-                    </div>
-                </form>
+                {renderFormContent()}
                 
-                <div className="mt-6 text-center">
-                    <button onClick={() => { setIsLoginView(!isLoginView); setError(null); }} className="text-purple-600 hover:text-purple-700 text-sm font-semibold">
-                        {isLoginView ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                {error && <p className="text-sm text-red-600 text-center mt-4">{error}</p>}
+                {message && <p className="text-sm text-green-600 text-center mt-4">{message}</p>}
+
+                <div className="mt-6 text-center space-y-2">
+                    {view === 'login' && (
+                        <button onClick={() => setView('forgotPassword')} className="text-purple-600 hover:text-purple-700 text-sm">
+                            Forgot Password?
+                        </button>
+                    )}
+                    <button onClick={() => setView(view === 'login' ? 'register' : 'login')} className="block w-full text-purple-600 hover:text-purple-700 text-sm font-semibold">
+                        {view === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
                     </button>
+                    {view === 'forgotPassword' && (
+                         <button onClick={() => setView('login')} className="block w-full text-purple-600 hover:text-purple-700 text-sm">
+                            &larr; Back to Login
+                        </button>
+                    )}
                 </div>
             </div>
         </main>
