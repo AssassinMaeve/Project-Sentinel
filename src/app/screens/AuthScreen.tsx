@@ -20,25 +20,45 @@ const AuthScreen = ({ onLoginSuccess }: AuthScreenProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  // Inside AuthScreen.tsx
+
+const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    await sleep(FAKE_AUTH_DELAY);
 
     try {
       if (isLoginView) {
-        if (email === 'test@test.com' && password === 'test') {
-          onLoginSuccess();
-        } else {
-          throw new Error('Invalid email or password.');
+        // --- REAL LOGIN API CALL ---
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Login failed.');
         }
+        
+        onLoginSuccess();
+
       } else {
-        if (!fullName || !badgeNumber) {
-            throw new Error('All registration fields are required.');
+        // --- REAL REGISTRATION API CALL ---
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, badgeNumber, email, password }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Registration failed.');
         }
-        console.log('Registration successful:', { fullName, badgeNumber, email });
-        setIsLoginView(true); 
+        
+        // Switch to login view after successful registration
+        alert("Registration successful! Please log in.");
+        setIsLoginView(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred.");
