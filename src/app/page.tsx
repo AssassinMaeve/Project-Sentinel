@@ -1,103 +1,117 @@
-import Image from "next/image";
+// src/App.tsx
+"use client";
+import React, { useState, useEffect } from 'react';
+import Navbar from './components/NavBar';
+import Chatbot from './components/Chatbot';
+import DashboardScreen from './screens/DashboardScreen';
+import ReportScreen from './screens/ReportScreen';
+import CaseScreen from './screens/CaseScreen';
+import { fetchDashboardData } from './api/sentinelApi';
 
-export default function Home() {
+// 1. Define the "shapes" (types) for all your data.
+// This is the most important step in fixing TypeScript errors.
+interface User {
+  name: string;
+}
+
+interface Deadline {
+  id: number;
+  caseNumber: string;
+  task: string;
+  dueIn: string;
+}
+
+interface Case {
+  id: number;
+  number: string;
+  title: string;
+  status: 'Active' | 'Pending' | 'Closed';
+}
+
+interface DashboardData {
+  deadlines: Deadline[];
+  cases: Case[];
+}
+
+// Create a type for screen names for better type safety
+type Screen = 'dashboard' | 'reports' | 'cases';
+
+
+function App() {
+  // 2. Provide explicit types to your state hooks.
+  const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+
+  // The state can now be a `User` object OR `null`.
+  const [user, setUser] = useState<User | null>(null);
+  
+  // This tells TypeScript what the arrays will eventually hold.
+  const [dashboardData, setDashboardData] = useState<DashboardData>({ deadlines: [], cases: [] });
+  
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  // The error state can now be a `string` OR `null`.
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // The data from your API will be validated against the types above.
+        const data = await fetchDashboardData();
+        setUser(data.user);
+        setDashboardData({ deadlines: data.deadlines, cases: data.cases });
+      } catch (err) {
+        setError("Could not load application data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // 3. Type all function parameters to avoid "implicit any" errors.
+  const handleNavigate = (screen: Screen) => {
+    setActiveScreen(screen);
+  };
+
+  const handleSelectCase = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    setActiveScreen('cases'); 
+  };
+
+  const renderContent = () => {
+    if (loading) return <div className="w-full text-center p-10">Loading Sentinel...</div>;
+    if (error) return <div className="w-full text-center p-10 text-red-400">{error}</div>;
+
+    // The optional chaining (?.) on user is important because user can be null.
+    switch (activeScreen) {
+      case 'dashboard':
+        return <DashboardScreen 
+                  userName={user?.name} 
+                  deadlines={dashboardData.deadlines} 
+                  cases={dashboardData.cases} 
+                  onNavigate={handleNavigate}
+                  onSelectCase={handleSelectCase}
+                />;
+      case 'reports':
+        return <ReportScreen userName={user?.name} />;
+      case 'cases':
+        return <CaseScreen caseId={selectedCaseId} />;
+      default:
+        // This case should ideally not be hit, but it's good practice.
+        return <div>Invalid Screen</div>;
+    }
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+    <div className="min-h-screen bg-slate-900 text-slate-200 flex flex-col">
+      <Navbar userName={user?.name} activeScreen={activeScreen} onNavigate={handleNavigate} />
+      <main className="flex-1 flex overflow-hidden">
+        {renderContent()}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <Chatbot userName={user?.name} />
     </div>
   );
 }
+
+export default App;
