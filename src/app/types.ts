@@ -2,6 +2,8 @@
 
 // This is the specific type for the status property
 export type CaseStatus = 'Active' | 'Pending' | 'Closed';
+export type Screen = 'dashboard' | 'reports' | 'cases' | 'profile';
+
 
 export interface User {
   name: string;
