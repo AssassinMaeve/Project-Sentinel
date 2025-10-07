@@ -1,17 +1,13 @@
 // src/screens/DashboardScreen.tsx
 
-// This component is interactive (uses onClick), so it should be a Client Component.
 "use client";
 
 import React from 'react';
 import { Calendar, FileText } from 'lucide-react';
-// 1. Import the data shapes (types) you defined earlier.
 import { Deadline, Case } from '@/app/types';
 
-// Define a type for the screen names for our onNavigate function
 type Screen = 'dashboard' | 'reports' | 'cases';
 
-// 2. Create an interface that describes the shape of the props.
 interface DashboardScreenProps {
   userName: string | undefined;
   deadlines: Deadline[];
@@ -20,13 +16,11 @@ interface DashboardScreenProps {
   onSelectCase: (caseId: string) => void;
 }
 
-// 3. Apply the interface to your component's props.
 const DashboardScreen = ({ userName, deadlines, cases, onNavigate, onSelectCase }: DashboardScreenProps) => {
   return (
     <div className="flex-1 overflow-y-auto p-8 space-y-6">
       <div className="mb-8">
         <h2 className="text-2xl font-light text-slate-200 mb-2">
-          {/* Handle the case where userName might be undefined */}
           Good Morning, {userName ? `Officer ${userName}` : 'Guest'}
         </h2>
         <p className="text-slate-400 text-sm">Tuesday, October 07, 2025</p>
@@ -39,7 +33,6 @@ const DashboardScreen = ({ userName, deadlines, cases, onNavigate, onSelectCase 
             <h3 className="text-lg font-medium text-slate-200">Upcoming Deadlines</h3>
           </div>
           <div className="space-y-3">
-            {/* TypeScript now knows that 'item' is of type 'Deadline' */}
             {deadlines.map((item) => (
               <div key={item.id} className="flex justify-between items-center p-3 bg-slate-900/50 rounded">
                 <div>
@@ -58,9 +51,17 @@ const DashboardScreen = ({ userName, deadlines, cases, onNavigate, onSelectCase 
           <p className="text-slate-400 text-sm mb-6">Use AI assistance to generate reports quickly</p>
           <button
             onClick={() => onNavigate('reports')}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-lg transition-colors font-medium"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-lg transition-colors font-medium mb-4"
           >
             Create Report
+          </button>
+
+          {/* New Button: Open AI Therapy Assistant */}
+          <button
+            onClick={() => window.open('http://127.0.0.1:5500/ChatBot/index.html', '_blank')}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg transition-colors font-medium"
+          >
+            Open AI Therapy Assistant
           </button>
         </div>
       </div>
@@ -68,7 +69,6 @@ const DashboardScreen = ({ userName, deadlines, cases, onNavigate, onSelectCase 
       <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/50">
         <h3 className="text-lg font-medium text-slate-200 mb-4">Active Cases</h3>
         <div className="space-y-2">
-           {/* TypeScript now knows that 'case_' is of type 'Case' */}
           {cases.map((case_) => (
             <button
               key={case_.id}
@@ -79,7 +79,13 @@ const DashboardScreen = ({ userName, deadlines, cases, onNavigate, onSelectCase 
                 <p className="text-slate-200 font-medium">{case_.number}</p>
                 <p className="text-slate-400 text-sm">{case_.title}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs ${case_.status === 'Active' ? 'bg-cyan-900/50 text-cyan-400' : 'bg-slate-700 text-slate-300'}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs ${
+                  case_.status === 'Active'
+                    ? 'bg-cyan-900/50 text-cyan-400'
+                    : 'bg-slate-700 text-slate-300'
+                }`}
+              >
                 {case_.status}
               </span>
             </button>
