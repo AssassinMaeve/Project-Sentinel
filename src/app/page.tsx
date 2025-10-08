@@ -6,6 +6,7 @@ import Chatbot from '@/app/components/Chatbot';
 import DashboardScreen from '@/app/screens/DashboardScreen';
 import ReportScreen from '@/app/screens/ReportScreen';
 import CaseScreen from '@/app/screens/CaseScreen';
+import AccountScreen from '@/app/screens/AccountScreen';
 import { User, Deadline, Case, Screen } from '@/app/types';
 
 interface DashboardData {
@@ -28,6 +29,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // NEW: Wellness tracking state
+  const [mentalClarityScore, setMentalClarityScore] = useState(72);
+  const [resilienceReserve, setResilienceReserve] = useState(65);
+
   // Load dashboard data function
   const loadDashboardData = async () => {
     setLoading(true);
@@ -47,6 +52,17 @@ export default function HomePage() {
       setLoading(false);
     }
   };
+
+  // NEW: Load wellness metrics
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedClarity = localStorage.getItem('mentalClarityScore');
+      const savedResilience = localStorage.getItem('resilienceReserve');
+      
+      if (savedClarity) setMentalClarityScore(parseInt(savedClarity));
+      if (savedResilience) setResilienceReserve(parseInt(savedResilience));
+    }
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -68,6 +84,19 @@ export default function HomePage() {
   const handleSelectCase = (caseId: string) => {
     setSelectedCaseId(caseId);
     setActiveScreen('cases');
+  };
+
+  // NEW: Handle wellness updates from DashboardScreen
+  const handleWellnessUpdate = (clarity: number, resilience: number) => {
+    setMentalClarityScore(clarity);
+    setResilienceReserve(resilience);
+  };
+
+  // NEW: Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setActiveScreen('dashboard');
+    setUser(null);
   };
 
   const switchAuthView = (view: AuthView) => {
@@ -238,13 +267,25 @@ export default function HomePage() {
                   onNavigate={handleNavigate}
                   onSelectCase={handleSelectCase}
                   onRefresh={loadDashboardData}
+                  onWellnessUpdate={handleWellnessUpdate}
                 />;
       case 'reports':
         return <ReportScreen userName={user?.name} />;
       case 'cases':
         return <CaseScreen 
                   caseId={selectedCaseId}
-                  onRefresh={loadDashboardData}  // ← FIXED: Added this line
+                  onRefresh={loadDashboardData}
+                />;
+      case 'profile':
+        return <AccountScreen 
+                  userName={user?.name}
+                  userEmail={user?.email}
+                  badgeNumber={user?.badgeNumber}
+                  department={user?.department}
+                  rank={user?.rank}
+                  mentalClarityScore={mentalClarityScore}
+                  resilienceReserve={resilienceReserve}
+                  onLogout={handleLogout}
                 />;
       default:
         return <div className="text-white">Invalid Screen</div>;
@@ -257,12 +298,16 @@ export default function HomePage() {
       <main className="flex-1 flex overflow-hidden">
         {renderContent()}
       </main>
-      <Chatbot userName={user?.name} />
+      <Chatbot 
+        userName={user?.name} 
+        mentalClarityScore={mentalClarityScore}
+        resilienceReserve={resilienceReserve}
+        deadlines={dashboardData.deadlines}
+        cases={dashboardData.cases}
+      />
     </div>
   );
 }
-
-// ... rest of your LoginForm, RegisterForm, ForgotPasswordForm components stay the same
 
 // ==================== LOGIN FORM ====================
 interface LoginFormProps {

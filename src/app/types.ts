@@ -11,6 +11,10 @@ export interface User {
   name?: string;
   email?: string;
   badgeNumber?: string;
+  // NEW: Added profile fields
+  department?: string;
+  rank?: string;
+  joinDate?: string;
 }
 
 export interface Deadline {

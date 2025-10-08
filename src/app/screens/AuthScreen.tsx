@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { LogIn, UserPlus, Mail } from 'lucide-react';
-import { AnimatedBackground } from '@/app/components/AnimatedBackground';
+import { AnimatedBackground } from '@/app/components/AnimatedGarden';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;

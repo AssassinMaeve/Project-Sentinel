@@ -275,200 +275,207 @@ const ReportScreen = ({ userName }: ReportScreenProps) => {
   };
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
-      {/* LEFT PANEL - Input */}
-      <div className="lg:w-1/2 p-8 border-r border-slate-700/50 flex flex-col">
-        <h2 className="text-2xl font-light text-slate-200 mb-6">Generate Report</h2>
-        
-        {/* Incident Type Selector */}
-        <div className="mb-4">
-          <label className="text-slate-400 text-sm mb-2 block">
-            Incident Type <span className="text-slate-500">(Optional)</span>
-          </label>
-          <select
-            value={incidentType}
-            onChange={(e) => setIncidentType(e.target.value)}
-            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-slate-200 focus:outline-none focus:border-cyan-600 transition-colors"
-            disabled={isProcessingPDF || isGenerating}
-          >
-            {incidentTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
+  <div className="flex-1 flex flex-col lg:flex-row min-h-screen"
+    style={{
+      background: 'linear-gradient(124deg, #965eff 0%, #5353fa 40%, #ff49b7 100%)'
+    }}
+  >
+    {/* LEFT PANEL - Input */}
+    <div className="lg:w-1/2 p-10 bg-white/90 flex flex-col rounded-none lg:rounded-l-2xl shadow-2xl">
+      <h2 className="text-3xl font-semibold text-[#5738e0] mb-7">Generate Report</h2>
+      
+      {/* Incident Type Selector */}
+      <div className="mb-6">
+        <label className="text-[#683bbc] text-sm font-medium mb-2 block">
+          Incident Type <span className="text-gray-400 font-normal">(Optional)</span>
+        </label>
+        <select
+          value={incidentType}
+          onChange={(e) => setIncidentType(e.target.value)}
+          className="w-full bg-[#f3f0ff] border border-[#cfc4fc] rounded-lg p-3 text-[#413181] focus:outline-none focus:border-[#a285fd] transition-colors"
+          disabled={isProcessingPDF || isGenerating}
+        >
+          {incidentTypes.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* PDF Upload Info */}
+      {uploadedFileName && pdfMetadata && (
+        <div className="mb-4 p-3 bg-[#e7e6fa] border border-[#c3bafc] rounded-lg">
+          <div className="flex items-center gap-2 text-[#8b6af8] text-sm">
+            <FileCheck className="w-4 h-4" />
+            <span className="font-medium">{uploadedFileName}</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">
+            {pdfMetadata.pages} pages • {formatFileSize(pdfMetadata.fileSize)}
+          </div>
         </div>
+      )}
 
-        {/* PDF Upload Info */}
-        {uploadedFileName && pdfMetadata && (
-          <div className="mb-3 p-3 bg-cyan-900/20 border border-cyan-700/50 rounded-lg">
-            <div className="flex items-center gap-2 text-cyan-400 text-sm">
-              <FileCheck className="w-4 h-4" />
-              <span className="font-medium">{uploadedFileName}</span>
-            </div>
-            <div className="text-slate-400 text-xs mt-1">
-              {pdfMetadata.pages} pages • {formatFileSize(pdfMetadata.fileSize)}
-            </div>
+      {/* Voice Status Indicator */}
+      {isListening && (
+        <div className="mb-4 p-3 bg-[#ffe7f7] border border-[#faacd6] rounded-lg">
+          <div className="flex items-center gap-2 text-[#e6358f] text-sm">
+            <div className="w-2 h-2 bg-[#e6358f] rounded-full animate-pulse" />
+            <span className="font-medium">🎤 Listening... Click again to stop</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Voice Status Indicator */}
-        {isListening && (
-          <div className="mb-3 p-3 bg-red-900/20 border border-red-700/50 rounded-lg">
-            <div className="flex items-center gap-2 text-red-400 text-sm">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="font-medium">🎤 Listening... Click again to stop</span>
-            </div>
-          </div>
-        )}
-
-        {/* Notes Textarea */}
-        <div className="flex-1 flex flex-col">
-          <label className="text-slate-400 text-sm mb-2">
-            Enter your notes, upload PDF, or start dictating...
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg p-4 text-slate-200 resize-none focus:outline-none focus:border-cyan-600 transition-colors"
-            placeholder="Describe the incident, location, parties involved, and any observations..."
-            disabled={isProcessingPDF}
-          />
-          
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-4">
-            {/* Voice Input Button (Speech-to-Text) */}
-            <button 
-              onClick={handleVoiceInput}
-              className={`flex-1 ${
-                isListening 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-slate-700 hover:bg-slate-600'
-              } text-slate-200 px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
-              disabled={isProcessingPDF || isGenerating}
-              title={isSpeechSupported ? 'Click to start/stop voice input' : 'Speech recognition not supported'}
-            >
-              {isListening ? (
-                <>
-                  <MicOff className="w-5 h-5" /> Stop Listening
-                </>
-              ) : (
-                <>
-                  <Mic className="w-5 h-5" /> Voice Input
-                </>
-              )}
-            </button>
-            
-            {/* Upload PDF Button */}
-            <label className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={isProcessingPDF || isGenerating}
-              />
-              {isProcessingPDF ? (
-                <>
-                  <FileCheck className="w-5 h-5 animate-pulse" /> Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5" /> Upload PDF
-                </>
-              )}
-            </label>
-          </div>
-          
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 mt-3 p-3 bg-red-900/20 border border-red-700/50 rounded-lg">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-          
-          {/* Generate Button */}
+      {/* Notes Textarea */}
+      <div className="flex-1 flex flex-col">
+        <label className="text-[#683bbc] text-sm font-medium mb-2">
+          Enter your notes, upload PDF, or start dictating...
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="flex-1 bg-[#f3f0ff] border border-[#d3d1e7] rounded-lg p-4 text-[#352b66] resize-none focus:outline-none focus:border-[#ff49b7] transition-colors"
+          placeholder="Describe the incident, location, parties involved, and any observations..."
+          disabled={isProcessingPDF}
+        />
+        
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-4">
+          {/* Voice Input Button (Speech-to-Text) */}
           <button
-            onClick={handleGenerateReport}
-            disabled={isGenerating || isProcessingPDF || !notes.trim()}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-4 rounded-lg transition-colors font-medium mt-3 disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            onClick={handleVoiceInput}
+            className={`flex-1 ${
+              isListening
+                ? 'bg-[#e6358f] hover:bg-[#b8206f]'
+                : 'bg-[#5738e0] hover:bg-[#4e2cd6]'
+            } text-white px-6 py-3 rounded-lg font-medium shadow transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            disabled={isProcessingPDF || isGenerating}
+            title={isSpeechSupported ? 'Click to start/stop voice input' : 'Speech recognition not supported'}
           >
-            {isGenerating ? (
+            {isListening ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Generating Standardized Report...
+                <MicOff className="w-5 h-5" /> Stop Listening
               </>
             ) : (
-              'Generate Report with AI'
+              <>
+                <Mic className="w-5 h-5" /> Voice Input
+              </>
             )}
           </button>
+          
+          {/* Upload PDF Button */}
+          <label className="flex-1 bg-[#fa4db7] hover:bg-[#e6358f] text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileUpload}
+              className="hidden"
+              disabled={isProcessingPDF || isGenerating}
+            />
+            {isProcessingPDF ? (
+              <>
+                <FileCheck className="w-5 h-5 animate-pulse" /> Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" /> Upload PDF
+              </>
+            )}
+          </label>
         </div>
-      </div>
-
-      {/* RIGHT PANEL - Output */}
-      <div className="lg:w-1/2 p-8 bg-slate-900/30 flex flex-col">
-        {isGenerated ? (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-light text-slate-200">Generated Report</h2>
-              <div className="flex gap-2">
-                {/* ✅ Text-to-Speech Button */}
-                <button 
-                  onClick={handleReadReport}
-                  className={`p-2 ${
-                    isReading ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-600'
-                  } rounded transition-colors`}
-                  title={isReading ? 'Stop reading' : 'Read report aloud'}
-                >
-                  {isReading ? (
-                    <VolumeX className="w-5 h-5 text-white" />
-                  ) : (
-                    <Volume2 className="w-5 h-5 text-slate-300" />
-                  )}
-                </button>
-                
-                <button 
-                  onClick={handleCopyReport}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded transition-colors" 
-                  title="Copy to Clipboard"
-                >
-                  <Copy className="w-5 h-5 text-slate-300" />
-                </button>
-                <button 
-                  onClick={handleSaveReport}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded transition-colors" 
-                  title="Save as TXT"
-                >
-                  <Save className="w-5 h-5 text-slate-300" />
-                </button>
-                <button 
-                  onClick={handleSubmitReport}
-                  className="p-2 bg-cyan-600 hover:bg-cyan-700 rounded transition-colors" 
-                  title="Submit Report"
-                >
-                  <Send className="w-5 h-5 text-white" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 bg-white/95 rounded-lg p-6 overflow-y-auto">
-              <pre className="text-slate-900 text-sm font-mono whitespace-pre-wrap leading-relaxed">
-                {generatedText}
-              </pre>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-center">
-            <div>
-              <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400 text-lg mb-2">Your generated report will appear here</p>
-              <p className="text-slate-500 text-sm">
-                Upload a PDF, type notes, or use voice input to generate a standardized police report
-              </p>
-            </div>
+        
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-center gap-2 mt-3 p-3 bg-[#fff0f5] border border-[#ea9abb] rounded-lg">
+            <AlertCircle className="w-4 h-4 text-[#e6358f] flex-shrink-0" />
+            <p className="text-[#e6358f] text-sm">{error}</p>
           </div>
         )}
+        
+        {/* Generate Button */}
+        <button
+          onClick={handleGenerateReport}
+          disabled={isGenerating || isProcessingPDF || !notes.trim()}
+          className="w-full bg-gradient-to-r from-[#5738e0] via-[#ff49b7] to-[#5353fa] hover:from-[#4e2cd6] hover:to-[#ff49b7] text-white px-6 py-4 rounded-lg font-semibold mt-4 shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+        >
+          {isGenerating ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Generating Standardized Report...
+            </>
+          ) : (
+            'Generate Report with AI'
+          )}
+        </button>
       </div>
     </div>
-  );
+
+    {/* RIGHT PANEL - Output */}
+    <div className="lg:w-1/2 p-10 bg-white/90 flex flex-col rounded-none lg:rounded-r-2xl shadow-2xl">
+      {isGenerated ? (
+        <>
+          <div className="flex justify-between items-center mb-7">
+            <h2 className="text-3xl font-semibold text-[#5738e0]">Generated Report</h2>
+            <div className="flex gap-2">
+              {/* Text-to-Speech Button */}
+              <button
+                onClick={handleReadReport}
+                className={`p-2 ${
+                  isReading
+                    ? 'bg-[#e6358f] hover:bg-[#b8206f]'
+                    : 'bg-[#f5f1fd] hover:bg-[#f0e8fb]'
+                } rounded-full transition-colors shadow`}
+                title={isReading ? 'Stop reading' : 'Read report aloud'}
+              >
+                {isReading ? (
+                  <VolumeX className="w-5 h-5 text-[#5738e0]" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-[#5738e0]" />
+                )}
+              </button>
+
+              <button
+                onClick={handleCopyReport}
+                className="p-2 bg-[#f5f1fd] hover:bg-[#e7e0f6] rounded-full transition-colors shadow"
+                title="Copy to Clipboard"
+              >
+                <Copy className="w-5 h-5 text-[#5738e0]" />
+              </button>
+              <button
+                onClick={handleSaveReport}
+                className="p-2 bg-[#f5f1fd] hover:bg-[#e7e0f6] rounded-full transition-colors shadow"
+                title="Save as TXT"
+              >
+                <Save className="w-5 h-5 text-[#5738e0]" />
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                className="p-2 bg-gradient-to-r from-[#5738e0] to-[#ff49b7] hover:from-[#6a4efc] hover:to-[#ff79c9] rounded-full transition-colors shadow"
+                title="Submit Report"
+              >
+                <Send className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 bg-white/95 rounded-lg p-6 overflow-y-auto border border-[#ebe5fb] shadow-inner">
+            <pre className="text-[#352b66] text-sm font-mono whitespace-pre-wrap leading-relaxed">
+              {generatedText}
+            </pre>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-center">
+          <div>
+            <FileText className="w-16 h-16 text-[#bcbada] mx-auto mb-4" />
+            <p className="text-[#5738e0] text-xl mb-2 font-light">Your generated report will appear here</p>
+            <p className="text-[#7c65db] text-sm font-medium">
+              Upload a PDF, type notes, or use voice input to generate a standardized police report
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 };
 
 export default ReportScreen;
