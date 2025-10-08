@@ -1,0 +1,166 @@
+// src/app/api/sentinelApi.ts
+
+// Import the types we just defined
+import { User, Deadline, Case, CaseDetails } from '../types';
+
+// --- MOCKED DATABASE ---
+
+// By explicitly typing our mock data, TypeScript ensures it matches the shape we defined.
+const MOCKED_USER: User = { name: "Martinez" };
+
+const MOCKED_DEADLINES: Deadline[] = [
+  { id: 1, caseNumber: "CZ-1138", task: "Incident Report", dueIn: "4 hours" },
+  { id: 2, caseNumber: "CZ-1142", task: "Evidence Log", dueIn: "1 day" },
+];
+
+// This is the fix for the previous error.
+// TypeScript now checks that 'status' is either "Active", "Pending", or "Closed".
+const MOCKED_CASES: Case[] = [
+  { id: 1, number: "CZ-1138", title: "Traffic Incident - Broadway & 5th", status: "Active" },
+  { id: 2, number: "CZ-1142", title: "Property Theft - Main St", status: "Active" },
+  { id: 3, number: "CZ-1135", title: "Wellness Check - Oak Ave", status: "Pending" },
+];
+
+// Record<string, CaseDetails> is a type for an object with string keys and CaseDetails values.
+const MOCKED_CASE_DETAILS: Record<string, CaseDetails> = {
+    "CZ-1138": {
+        id: 1,
+        number: "CZ-1138",
+        title: "Traffic Incident - Broadway & 5th",
+        status: "Active",
+        overview: {
+            dateTime: "October 5, 2025 - 14:30",
+            location: "Broadway & 5th Avenue",
+            type: "Traffic Incident",
+            priority: "Medium",
+            description: "Two-vehicle collision at intersection. Minor injuries reported. Both drivers cooperative. Traffic diverted. Tow trucks dispatched. Witness statements collected.",
+        },
+        files: [
+            { id: 1, name: "scene_photo_1.jpg" },
+            { id: 2, name: "witness_statement.pdf" },
+            { id: 3, name: "vehicle_damage.jpg" },
+        ],
+        notes: [
+            { id: 1, timestamp: "Oct 5, 2025 - 14:35", text: "Initial response logged. Scene secured." },
+            { id: 2, timestamp: "Oct 5, 2025 - 15:10", text: "Witness statements collected from 3 individuals." },
+            { id: 3, timestamp: "Oct 6, 2025 - 09:00", text: "Follow-up report submitted to supervisor." },
+        ],
+        calendar: [
+            { id: 1, title: "Court Appearance", dateTime: "October 15, 2025 - 10:00 AM", location: "County Courthouse - Room 3B", isPriority: true },
+            { id: 2, title: "Evidence Review", dateTime: "October 10, 2025 - 2:00 PM", location: "Station - Evidence Room", isPriority: false },
+        ]
+    }
+};
+
+// --- API FUNCTIONS ---
+
+// Add types to function parameters and define the Promise return type.
+const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
+export const fetchDashboardData = async (): Promise<{ user: User; deadlines: Deadline[]; cases: Case[] }> => {
+  console.log("API: Fetching dashboard data...");
+  await sleep(500);
+  return {
+    user: MOCKED_USER,
+    deadlines: MOCKED_DEADLINES,
+    cases: MOCKED_CASES,
+  };
+};
+
+export const fetchCaseDetails = async (caseId: string): Promise<CaseDetails> => {
+    console.log(`API: Fetching details for case ${caseId}...`);
+    await sleep(500);
+    const details = MOCKED_CASE_DETAILS[caseId];
+    if (!details) {
+        throw new Error("Case not found");
+    }
+    return details;
+};
+
+// UPDATED: Enhanced with optional parameters for incident type and large document processing
+export const generateReportApi = async (
+    notes: string, 
+    userName: string,
+    incidentType?: string,
+    isLargeDocument?: boolean
+): Promise<string> => {
+    console.log("API: Generating report...");
+    
+    // Check if we should use real AI generation or mock data
+    const useRealAPI = process.env.NEXT_PUBLIC_USE_REAL_API === 'true';
+    
+    if (useRealAPI) {
+        // Call the real API endpoint for AI-powered report generation
+        const response = await fetch('/api/report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                notes,
+                officerName: userName,
+                incidentType,
+                isLargeDocument: isLargeDocument || false,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate report');
+        }
+
+        const data = await response.json();
+        return data.report;
+    } else {
+        // Mock response (original logic preserved)
+        await sleep(1000);
+        return `INCIDENT REPORT
+
+Case Number: CZ-${Math.floor(Math.random() * 9000) + 1000}
+Date: October 7, 2025
+Reporting Officer: Officer ${userName}${incidentType ? `\nIncident Type: ${incidentType}` : ''}
+
+INCIDENT SUMMARY:
+${notes || 'Based on the provided notes and context, this incident involved...'}
+
+DETAILS:
+[AI generated details based on notes...]
+
+This report has been generated by Sentinel AI and should be reviewed for accuracy.`;
+    }
+};
+
+// ========================================
+// NEW FUNCTIONS - PDF Upload Support
+// ========================================
+
+/**
+ * Upload PDF and extract text content
+ */
+export const uploadPDFAndExtract = async (file: File): Promise<{
+  text: string;
+  metadata: {
+    pages: number;
+    fileName: string;
+    fileSize: number;
+  };
+}> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to extract text from PDF');
+  }
+
+  const data = await response.json();
+  return {
+    text: data.text,
+    metadata: data.metadata,
+  };
+};
